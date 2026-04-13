@@ -1,0 +1,27 @@
+# ── Build ─────────────────────────────────────────────────────────────────────
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.make
+
+# ── Ejecutable ────────────────────────────────────────────────────────────────
+evaluador
+evaluador.exe
+
+# ── Modelos entrenados (archivos pesados) ─────────────────────────────────────
+models/*.onnx
+models/*.pt
+models/*.pth
+
+# ── Dataset (no se sube al repo, es demasiado pesado) ────────────────────────
+data/raw/
+data/labeled/
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+env/
