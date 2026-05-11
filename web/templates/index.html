@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PixelScore — Evaluador de Imágenes</title>
+  <link rel="preconnect" href="https://api.fontshare.com"/>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=cabinet-grotesk@700,800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --font-d: 'Cabinet Grotesk', sans-serif;
+      --font-b: 'Satoshi', sans-serif;
+      --bg:#f5f4f0; --sur:#fdfcf9; --sur2:#f0ede8; --brd:#ddd9d2;
+      --tx:#1e1b16; --mu:#6b6760; --fa:#9e9890;
+      --pri:#0d6e67; --prih:#0a5550; --pris:rgba(13,110,103,.11);
+      --ok:#2a7d4f; --oks:rgba(42,125,79,.12);
+      --wa:#b97318; --was:rgba(185,115,24,.12);
+      --er:#b93a1a; --ers:rgba(185,58,26,.12);
+      --sh:0 8px 28px rgba(20,16,10,.09); --shs:0 2px 8px rgba(20,16,10,.06);
+      --r:.9rem; --rl:1.3rem; --rf:999px; --tr:160ms cubic-bezier(.16,1,.3,1);
+    }
+    [data-theme="dark"] {
+      --bg:#111210; --sur:#181917; --sur2:#222421; --brd:#2e3030;
+      --tx:#e8e4de; --mu:#a09b94; --fa:#6a6560;
+      --pri:#3fb8b0; --prih:#5ecec7; --pris:rgba(63,184,176,.13);
+      --ok:#5ab87a; --oks:rgba(90,184,122,.13);
+      --wa:#e09a40; --was:rgba(224,154,64,.13);
+      --er:#e06040; --ers:rgba(224,96,64,.13);
+      --sh:0 8px 28px rgba(0,0,0,.32); --shs:0 2px 8px rgba(0,0,0,.22);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:var(--font-b);font-size:1rem;line-height:1.6;color:var(--tx);background:var(--bg);min-height:100dvh}
+    button,input{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
+    img{display:block;max-width:100%}
+
+    /* TOPBAR */
+    .topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.85rem 1.5rem;background:color-mix(in srgb,var(--sur) 82%,transparent);backdrop-filter:blur(16px);border-bottom:1px solid var(--brd)}
+    .brand{display:flex;align-items:center;gap:.8rem}
+    .logo{width:2.4rem;height:2.4rem;border-radius:.75rem;background:linear-gradient(135deg,var(--pri),color-mix(in srgb,var(--pri) 55%,#fff));display:grid;place-items:center;color:#fff}
+    .brand-name{font-family:var(--font-d);font-size:1.15rem;line-height:1}
+    .brand-sub{font-size:.75rem;color:var(--mu)}
+    .theme-btn{width:40px;height:40px;border-radius:var(--rf);border:1px solid var(--brd);background:var(--sur);display:grid;place-items:center;color:var(--mu);transition:background var(--tr),color var(--tr)}
+    .theme-btn:hover{background:var(--sur2);color:var(--tx)}
+
+    /* LAYOUT */
+    .shell{max-width:1200px;margin:0 auto;padding:2rem 1.5rem;display:grid;gap:1.5rem}
+    .two-col{display:grid;grid-template-columns:1.1fr .9fr;gap:1.5rem}
+    .card{background:var(--sur);border:1px solid var(--brd);border-radius:var(--rl);box-shadow:var(--shs);padding:1.5rem}
+    .card-title{font-family:var(--font-d);font-size:1.15rem;margin-bottom:.35rem}
+    .card-sub{font-size:.875rem;color:var(--mu);margin-bottom:1.25rem}
+    .sec-title{font-family:var(--font-d);font-size:1.05rem;margin-bottom:.3rem}
+    .sec-sub{font-size:.82rem;color:var(--mu);margin-bottom:1.1rem}
+
+    /* UPLOAD */
+    .upload-area{border:1.5px dashed color-mix(in srgb,var(--pri) 40%,var(--brd));border-radius:var(--rl);background:linear-gradient(180deg,var(--pris),transparent 60%),var(--sur2);padding:2.5rem 1.5rem;display:grid;justify-items:center;gap:.85rem;text-align:center;cursor:pointer;transition:border-color var(--tr),background var(--tr)}
+    .upload-area:hover,.upload-area.drag{border-color:var(--pri);background:var(--pris)}
+    .upload-area svg{color:var(--pri)}
+    .upload-area h3{font-size:1.05rem}
+    .upload-area p{font-size:.875rem;color:var(--mu);max-width:42ch}
+    .upload-area input{display:none}
+    .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 1.25rem;border-radius:var(--rf);font-size:.9rem;font-weight:600;min-height:44px;transition:background var(--tr),transform var(--tr)}
+    .btn-primary{background:var(--pri);color:#fff;box-shadow:var(--shs)}
+    .btn-primary:hover{background:var(--prih);transform:translateY(-1px)}
+    .btn-ghost{border:1px solid var(--brd);background:var(--sur);color:var(--tx)}
+    .btn-ghost:hover{background:var(--sur2)}
+
+    /* PREVIEW */
+    .preview-wrap{display:none;gap:1rem;align-items:start;margin-top:1.25rem}
+    .preview-wrap.show{display:grid;grid-template-columns:130px 1fr}
+    .preview-img{width:130px;aspect-ratio:1;border-radius:var(--r);overflow:hidden;background:var(--sur2);border:1px solid var(--brd)}
+    .preview-img img{width:100%;height:100%;object-fit:cover}
+    .preview-info{display:grid;gap:.5rem}
+    .preview-info strong{font-size:.95rem}
+    .preview-info span{font-size:.8rem;color:var(--mu)}
+    .btn-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:.75rem}
+
+    /* LOADING */
+    .loading{display:none;flex-direction:column;align-items:center;gap:1rem;padding:2rem;text-align:center}
+    .loading.show{display:flex}
+    .spinner{width:2.5rem;height:2.5rem;border:3px solid var(--sur2);border-top-color:var(--pri);border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* SCORE RING */
+    .score-section{display:grid;justify-items:center;gap:1rem;margin-bottom:1.5rem}
+    .ring-wrap{position:relative;width:10rem;height:10rem}
+    .ring-wrap svg{transform:rotate(-90deg)}
+    .ring-bg{fill:none;stroke:var(--sur2);stroke-width:10}
+    .ring-fg{fill:none;stroke:var(--pri);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .8s cubic-bezier(.16,1,.3,1)}
+    .ring-center{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+    .ring-center strong{font-family:var(--font-d);font-size:2rem;line-height:1}
+    .ring-center span{font-size:.75rem;color:var(--mu)}
+    .badge{display:inline-flex;align-items:center;gap:.4rem;padding:.5rem .9rem;border-radius:var(--rf);font-size:.8rem;font-weight:700}
+    .badge-pro{background:var(--oks);color:var(--ok)}
+    .badge-ok{background:var(--was);color:var(--wa)}
+    .badge-bad{background:var(--ers);color:var(--er)}
+    .resumen{font-size:.875rem;color:var(--mu);text-align:center;max-width:40ch}
+    .cnn-row{display:flex;align-items:center;justify-content:center;gap:.6rem;padding:.65rem 1rem;border-radius:var(--rf);border:1px solid var(--brd);background:var(--sur2);font-size:.8rem}
+    .cnn-dot{width:.55rem;height:.55rem;border-radius:50%;background:var(--pri)}
+
+    /* METRICS */
+    .metric-list{display:grid;gap:1rem}
+    .metric-header{display:flex;justify-content:space-between;align-items:start;font-size:.875rem;margin-bottom:.35rem;gap:.5rem}
+    .metric-left{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+    .bar{height:.6rem;border-radius:var(--rf);background:var(--sur2);overflow:hidden}
+    .bar-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--pri),color-mix(in srgb,var(--pri) 55%,#fff));transition:width .9s cubic-bezier(.16,1,.3,1)}
+    .rec-text{font-size:.78rem;color:var(--mu);margin-top:.35rem;padding-left:.1rem}
+    .estado-badge{display:inline-block;padding:.15rem .5rem;border-radius:var(--rf);font-size:.7rem;font-weight:700}
+    .Bueno{background:var(--oks);color:var(--ok)}
+    .Aceptable{background:var(--was);color:var(--wa)}
+    .Deficiente{background:var(--ers);color:var(--er)}
+
+    /* RESULTADOS */
+    #resultsPanel{display:none}
+    #resultsPanel.show{display:grid}
+    .empty-state{display:grid;justify-items:center;gap:.75rem;padding:2.5rem;text-align:center;color:var(--mu)}
+    .empty-state svg{color:var(--fa)}
+    .empty-state p{font-size:.875rem;max-width:30ch}
+    .error-box{display:none;padding:1rem 1.25rem;border-radius:var(--r);background:var(--ers);color:var(--er);border:1px solid color-mix(in srgb,var(--er) 25%,transparent);font-size:.875rem;margin-top:1rem}
+    .error-box.show{display:block}
+
+    /* FILTROS */
+    #filtrosSection{display:none}
+    #filtrosSection.show{display:block}
+    .filters-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:1rem;margin-top:1rem}
+    .filter-card{border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden;background:var(--sur);box-shadow:var(--shs);transition:transform var(--tr),box-shadow var(--tr)}
+    .filter-card:hover{transform:translateY(-2px);box-shadow:var(--sh)}
+    .filter-card img{width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--sur2)}
+    .filter-info{padding:.85rem 1rem}
+    .filter-info strong{display:block;font-size:.9rem;margin-bottom:.2rem}
+    .filter-info p{font-size:.78rem;color:var(--mu)}
+
+    /* DIVIDER */
+    .divider{height:1px;background:var(--brd);margin:0}
+
+    @media(max-width:900px){.two-col{grid-template-columns:1fr}}
+    @media(max-width:540px){.shell{padding:1rem}.topbar{padding:.75rem 1rem}.preview-wrap.show{grid-template-columns:1fr}.filters-grid{grid-template-columns:1fr 1fr}}
+    @media(max-width:380px){.filters-grid{grid-template-columns:1fr}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 12c2.5-4.5 5.2-6.8 8-6.8s5.5 2.3 8 6.8c-2.5 4.5-5.2 6.8-8 6.8S6.5 16.5 4 12Z"/>
+          <circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">PixelScore</div>
+        <div class="brand-sub">Evaluador de imágenes para e-commerce</div>
+      </div>
+    </div>
+    <button class="theme-btn" id="themeBtn" aria-label="Cambiar tema">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </header>
+
+  <main class="shell">
+
+    <!-- FILA SUPERIOR: carga + resultados -->
+    <div class="two-col">
+
+      <!-- IZQUIERDA -->
+      <section class="card">
+        <h2 class="card-title">Cargar imagen</h2>
+        <p class="card-sub">Sube una foto del producto y el sistema la evaluará automáticamente.</p>
+
+        <label class="upload-area" id="uploadArea" for="fileInput">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 16V4"/><path d="m7 9 5-5 5 5"/>
+            <path d="M20 16.5A3.5 3.5 0 0 1 16.5 20h-9A3.5 3.5 0 0 1 4 16.5"/>
+          </svg>
+          <h3>Arrastra tu imagen aquí</h3>
+          <p>o haz clic para seleccionarla desde tu equipo</p>
+          <span class="btn btn-primary" style="pointer-events:none">Seleccionar archivo</span>
+          <small style="color:var(--fa)">JPG, PNG o WEBP · máx. 16 MB</small>
+          <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp"/>
+        </label>
+
+        <div class="preview-wrap" id="previewWrap">
+          <div class="preview-img"><img id="previewImg" alt="Vista previa"/></div>
+          <div class="preview-info">
+            <strong id="previewName">—</strong>
+            <span id="previewSize">—</span>
+            <div class="btn-row">
+              <button class="btn btn-primary" id="analyzeBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                Analizar
+              </button>
+              <button class="btn btn-ghost" id="resetBtn">Cambiar imagen</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="loading" id="loadingState">
+          <div class="spinner"></div>
+          <p style="color:var(--mu)">Procesando imagen con el modelo…</p>
+        </div>
+
+        <div class="error-box" id="errorBox" role="alert"></div>
+      </section>
+
+      <!-- DERECHA -->
+      <section class="card">
+        <h2 class="card-title">Resultado del análisis</h2>
+        <p class="card-sub">Score global, clasificación y métricas detalladas.</p>
+
+        <div class="empty-state" id="emptyState">
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+            <rect x="3" y="3" width="18" height="18" rx="3"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+          <p>Sube una imagen para ver el análisis aquí.</p>
+        </div>
+
+        <div id="resultsPanel">
+          <div class="score-section">
+            <div class="ring-wrap">
+              <svg viewBox="0 0 100 100" width="160" height="160">
+                <circle class="ring-bg" cx="50" cy="50" r="44"/>
+                <circle class="ring-fg" id="ringFg" cx="50" cy="50" r="44"
+                  stroke-dasharray="276.46" stroke-dashoffset="276.46"/>
+              </svg>
+              <div class="ring-center">
+                <strong id="scoreNum">0</strong>
+                <span>/ 100</span>
+              </div>
+            </div>
+            <div id="categoriaBadge" class="badge badge-ok">—</div>
+            <p class="resumen" id="resumenText">—</p>
+            <div class="cnn-row" id="cnnRow" style="display:none">
+              <span class="cnn-dot"></span>
+              <span>CNN: <strong id="cnnLabel">—</strong></span>
+            </div>
+          </div>
+
+          <hr class="divider" style="margin-bottom:1.25rem"/>
+
+          <h3 class="sec-title">Métricas y recomendaciones</h3>
+          <p class="sec-sub">Cada métrica incluye la sugerencia generada por el sistema.</p>
+          <div class="metric-list" id="metricList"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- SECCIÓN FILTROS -->
+    <section class="card" id="filtrosSection">
+      <h2 class="card-title">Filtros aplicados</h2>
+      <p class="card-sub">Visualización de cada transformación usada para calcular el score.</p>
+      <div class="filters-grid" id="filtersGrid"></div>
+    </section>
+
+  </main>
+
+  <script>
+    // Tema
+    (function(){
+      const root=document.documentElement, btn=document.getElementById('themeBtn');
+      let t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
+      root.setAttribute('data-theme',t);
+      const icon=()=>btn.innerHTML=t==='dark'
+        ?`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`
+        :`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+      icon();
+      btn.addEventListener('click',()=>{t=t==='dark'?'light':'dark';root.setAttribute('data-theme',t);icon();});
+    })();
+
+    const fileInput    = document.getElementById('fileInput');
+    const uploadArea   = document.getElementById('uploadArea');
+    const previewWrap  = document.getElementById('previewWrap');
+    const previewImg   = document.getElementById('previewImg');
+    const previewName  = document.getElementById('previewName');
+    const previewSize  = document.getElementById('previewSize');
+    const analyzeBtn   = document.getElementById('analyzeBtn');
+    const resetBtn     = document.getElementById('resetBtn');
+    const loadingState = document.getElementById('loadingState');
+    const errorBox     = document.getElementById('errorBox');
+    const emptyState   = document.getElementById('emptyState');
+    const resultsPanel = document.getElementById('resultsPanel');
+    const ringFg       = document.getElementById('ringFg');
+    const scoreNum     = document.getElementById('scoreNum');
+    const categoriaBadge = document.getElementById('categoriaBadge');
+    const resumenText  = document.getElementById('resumenText');
+    const cnnRow       = document.getElementById('cnnRow');
+    const cnnLabel     = document.getElementById('cnnLabel');
+    const metricList   = document.getElementById('metricList');
+    const filtrosSection = document.getElementById('filtrosSection');
+    const filtersGrid  = document.getElementById('filtersGrid');
+
+    let currentFile = null;
+    const CIRCUM = 2 * Math.PI * 44;
+
+    const fmt = b => b > 1e6 ? (b/1e6).toFixed(1)+' MB' : (b/1e3).toFixed(0)+' KB';
+
+    function setFile(file) {
+      currentFile = file;
+      previewImg.src = URL.createObjectURL(file);
+      previewName.textContent = file.name;
+      previewSize.textContent = fmt(file.size);
+      uploadArea.style.display = 'none';
+      previewWrap.classList.add('show');
+      loadingState.classList.remove('show');
+      errorBox.classList.remove('show');
+    }
+
+    fileInput.addEventListener('change', e => { if (e.target.files[0]) setFile(e.target.files[0]); });
+    uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag'); });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag'));
+    uploadArea.addEventListener('drop', e => {
+      e.preventDefault(); uploadArea.classList.remove('drag');
+      const f = e.dataTransfer.files[0];
+      if (f && ['image/jpeg','image/png','image/webp'].includes(f.type)) setFile(f);
+    });
+
+    resetBtn.addEventListener('click', () => {
+      currentFile = null; fileInput.value = '';
+      previewWrap.classList.remove('show');
+      uploadArea.style.display = '';
+      errorBox.classList.remove('show');
+      emptyState.style.display = '';
+      resultsPanel.classList.remove('show');
+      filtrosSection.classList.remove('show');
+    });
+
+    function badgeClass(cat) {
+      if (!cat) return 'badge-ok';
+      const c = cat.toLowerCase();
+      if (c.includes('profesional')) return 'badge-pro';
+      if (c.includes('deficiente'))  return 'badge-bad';
+      return 'badge-ok';
+    }
+
+    function animateScore(target) {
+      let cur = 0; const step = target / 50;
+      const t = setInterval(() => {
+        cur = Math.min(cur + step, target);
+        scoreNum.textContent = Math.round(cur);
+        ringFg.style.strokeDashoffset = CIRCUM - (cur / 100) * CIRCUM;
+        if (cur >= target) clearInterval(t);
+      }, 18);
+    }
+
+    function renderMetrics(metricas) {
+      if (!metricas?.length) { metricList.innerHTML = ''; return; }
+      metricList.innerHTML = metricas.map(m => `
+        <div>
+          <div class="metric-header">
+            <div class="metric-left">
+              <strong>${m.nombre}</strong>
+              <span class="estado-badge ${m.estado}">${m.estado}</span>
+            </div>
+            <span style="font-size:.8rem;color:var(--mu);white-space:nowrap">${m.score.toFixed(1)}/100</span>
+          </div>
+          <div class="bar"><div class="bar-fill" style="width:${m.score}%"></div></div>
+          ${m.recomendacion ? `<p class="rec-text">→ ${m.recomendacion}</p>` : ''}
+        </div>`).join('');
+    }
+
+    function renderFiltros(filtros) {
+      if (!filtros?.length) { filtrosSection.classList.remove('show'); return; }
+      filtersGrid.innerHTML = filtros.map(f => `
+        <article class="filter-card">
+          <img src="${f.imagen}" alt="${f.nombre}" loading="lazy"/>
+          <div class="filter-info">
+            <strong>${f.nombre}</strong>
+            <p>${f.descripcion}</p>
+          </div>
+        </article>`).join('');
+      filtrosSection.classList.add('show');
+      filtrosSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    analyzeBtn.addEventListener('click', async () => {
+      if (!currentFile) return;
+      previewWrap.classList.remove('show');
+      loadingState.classList.add('show');
+      errorBox.classList.remove('show');
+      emptyState.style.display = 'none';
+      resultsPanel.classList.remove('show');
+      filtrosSection.classList.remove('show');
+
+      const fd = new FormData();
+      fd.append('imagen', currentFile);
+
+      try {
+        const res  = await fetch('/analizar', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        loadingState.classList.remove('show');
+        resultsPanel.classList.add('show');
+
+        animateScore(data.score_global);
+        categoriaBadge.textContent = data.categoria || '—';
+        categoriaBadge.className   = 'badge ' + badgeClass(data.categoria);
+        resumenText.textContent    = data.resumen || '—';
+
+        if (data.categoria_cnn) {
+          cnnLabel.textContent = data.categoria_cnn;
+          cnnRow.style.display = 'flex';
+        } else {
+          cnnRow.style.display = 'none';
+        }
+
+        renderMetrics(data.metricas);
+        renderFiltros(data.filtros);
+        previewWrap.classList.add('show');
+
+      } catch(err) {
+        loadingState.classList.remove('show');
+        previewWrap.classList.add('show');
+        errorBox.textContent = err.message || 'Error desconocido al analizar la imagen.';
+        errorBox.classList.add('show');
+        emptyState.style.display = '';
+      }
+    });
+  </script>
+</body>
+</html>
