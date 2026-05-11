@@ -15,13 +15,20 @@ models/*.onnx
 models/*.pt
 models/*.pth
 
-# ── Dataset (no se sube al repo, es demasiado pesado) ────────────────────────
-data/raw/
-data/labeled/
+# ── Dataset (demasiado pesado para el repo) ───────────────────────────────────
+data/
 
 # ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
 *.pyc
 *.pyo
+venv/
 .venv/
 env/
+
+# ── Web ───────────────────────────────────────────────────────────────────────
+web/uploads/
+
+# ── Sistema operativo ─────────────────────────────────────────────────────────
+.DS_Store
+.python-version

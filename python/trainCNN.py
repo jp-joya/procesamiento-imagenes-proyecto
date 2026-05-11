@@ -15,7 +15,7 @@ from torchvision import datasets, transforms, models
 # ── Configuración ─────────────────────────────────────────────────────────────
 DATA_DIR    = "data/labeled"
 MODEL_OUT   = "models/quality_model.pt"
-EPOCHS      = 15
+EPOCHS      = 10
 BATCH_SIZE  = 32
 LR          = 0.001
 NUM_CLASSES = 3   # profesional, aceptable, deficiente
@@ -44,16 +44,19 @@ val_transforms = transforms.Compose([
 # ── Dataset ───────────────────────────────────────────────────────────────────
 full_dataset = datasets.ImageFolder(DATA_DIR, transform=train_transforms)
 
+# Limitar a 6000 imágenes para entrenamiento rápido en CPU (2000 por clase)
+indices = torch.randperm(len(full_dataset))[:6000].tolist()
+full_dataset = torch.utils.data.Subset(full_dataset, indices)
+
 # 80% entrenamiento, 20% validación
 train_size = int(0.8 * len(full_dataset))
 val_size   = len(full_dataset) - train_size
 train_set, val_set = torch.utils.data.random_split(full_dataset, [train_size, val_size])
-val_set.dataset.transform = val_transforms
 
 train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True)
 val_loader   = DataLoader(val_set,   batch_size=BATCH_SIZE, shuffle=False)
 
-print(f"Clases: {full_dataset.classes}")
+print(f"Clases: {full_dataset.dataset.classes}")
 print(f"Total imágenes: {len(full_dataset)} | Train: {train_size} | Val: {val_size}")
 
 # ── Modelo: MobileNetV2 con transfer learning ─────────────────────────────────

@@ -8,6 +8,19 @@ MetricResult computeSharpness(const cv::Mat& gray) {
     cv::meanStdDev(laplacian, mean, stddev);
     double lapVar = stddev[0] * stddev[0];
 
+    // Penalización por oscuridad: si la imagen es oscura,
+    // el ruido nocturno infla el Laplaciano falsamente.
+    // Reducimos el lapVar proporcionalmente al brillo real.
+    cv::Scalar brightMean = cv::mean(gray);
+    double brightness = brightMean[0]; // 0-255
+
+    // Una imagen oscura (< 80) tiene su lapVar penalizado fuertemente
+    // Una imagen bien iluminada (>= 120) no se toca
+    if (brightness < 120.0) {
+        double penalty = brightness / 120.0; // entre 0.0 y 1.0
+        lapVar *= (penalty * penalty);        // penalización cuadrática
+    }
+
     double score;
     std::string label, rec;
 

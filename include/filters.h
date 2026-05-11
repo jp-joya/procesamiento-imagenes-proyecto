@@ -14,8 +14,8 @@ struct MetricResult {
 // ── Umbrales de clasificación ─────────────────────────────────────────────────
 
 // Nitidez (varianza del Laplaciano)
-constexpr double SHARPNESS_GOOD = 120.0;
-constexpr double SHARPNESS_OK   = 50.0;
+constexpr double SHARPNESS_GOOD = 300.0;
+constexpr double SHARPNESS_OK   = 100.0;
 
 // Iluminación (luminancia media 0-255)
 constexpr double BRIGHTNESS_LOW          = 60.0;
